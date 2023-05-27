@@ -164,8 +164,11 @@ export function createMessageInfo(msg, globalFingerprints){
 *
 * @param {Object} signedMessages
 *    web3Storage.signedMessages
+*
+* @param {Object} globalFingerprints
+*    web3Storage.globalFingerprints
 */
-export function checkMessageBeforeSign (messageInfo, signedMessages) {
+export function checkMessageBeforeSign(messageInfo, signedMessages, globalFingerprints){
 
   let {address, message, domain, fingerprint} = messageInfo
 
@@ -200,11 +203,29 @@ export function checkMessageBeforeSign (messageInfo, signedMessages) {
               Risks.push({
                 severity: 'danger',
                   title: 'Phishing Attack',
-                  body: `This website may be a phishing site. You had signed similar messages for ${victim_domains.join(', ')}. Please check this website's domain name.`
+                  body: `This is a phishing website. You had signed similar messages for ${victim_domains.join(', ')}. Please check this website's domain name.`
               })
           }
       }
   }
+
+  // Warning: Phishing Attack
+  // different domain, same fingerprint
+  let similarDomains = []
+  for (let d in globalFingerprints) {
+      if (d == domain) continue // Skip the same domain
+      let f2 = globalFingerprints[d]
+      if (compareFingerprint(fingerprint, f2)) {
+            similarDomains.push(d)
+      }
+  }
+    if (similarDomains.length > 0) {
+        Risks.push({
+            severity: 'warning',
+              title: 'Phishing Attack',
+              body: `This is a phishing website. This website can take your signature to login in other websites!\n${similarDomains.join(', ')}`
+          })
+    }
 
   // Warning: Phishing Attack
   if (!domainInMsg) {

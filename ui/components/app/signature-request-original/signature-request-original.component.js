@@ -187,7 +187,7 @@ export default class SignatureRequestOriginal extends Component {
       //console.log('messageInfo', messageInfo)
       //console.log(this.props.allState.metamask.web3Storage)
 
-      messageRisks = checkMessageBeforeSign(messageInfo,signedMessages)
+      messageRisks = checkMessageBeforeSign(messageInfo, signedMessages, globalFingerprints)
       messageRisks.map((risk) => {
         if (risk.severity === 'danger') {
           risk.severity = SEVERITIES.DANGER

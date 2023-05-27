@@ -164,7 +164,7 @@ import { previousValueComparator } from './lib/util';
 import createMetamaskMiddleware from './lib/createMetamaskMiddleware';
 import EncryptionPublicKeyController from './controllers/encryption-public-key';
 
-import Web3AuthController from './controllers/web3-auth';
+import Web3AuthController from './controllers/web3/web3-auth';
 
 import {
   CaveatMutatorFactories,

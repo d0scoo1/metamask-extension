@@ -81,9 +81,6 @@ const ConfirmTxScreen = ({ match }) => {
 
   const [prevValue, setPrevValues] = useState();
 
-  console.log('---  Index : ConfirmTxScreen ---')
-
-
   useEffect(() => {
     const unconfTxList = txHelper(
       unapprovedTxs || {},
