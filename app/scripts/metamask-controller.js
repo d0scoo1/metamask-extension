@@ -164,6 +164,8 @@ import { previousValueComparator } from './lib/util';
 import createMetamaskMiddleware from './lib/createMetamaskMiddleware';
 import EncryptionPublicKeyController from './controllers/encryption-public-key';
 
+import Web3AuthController from './controllers/web3-auth';
+
 import {
   CaveatMutatorFactories,
   getCaveatSpecifications,
@@ -982,6 +984,12 @@ export default class MetamaskController extends EventEmitter {
       preferencesStore: this.preferencesController.store,
     });
 
+    this.web3AuthController = new Web3AuthController(
+      {
+        initState: initState.Web3AuthController,
+      }
+    );
+
     this.backupController = new BackupController({
       preferencesController: this.preferencesController,
       addressBookController: this.addressBookController,
@@ -1404,6 +1412,7 @@ export default class MetamaskController extends EventEmitter {
       NetworkController: this.networkController.store,
       CachedBalancesController: this.cachedBalancesController.store,
       AlertController: this.alertController.store,
+      Web3AuthController: this.web3AuthController.store,
       OnboardingController: this.onboardingController.store,
       IncomingTransactionsController: this.incomingTransactionsController.store,
       PermissionController: this.permissionController,
@@ -1427,6 +1436,7 @@ export default class MetamaskController extends EventEmitter {
       DesktopController: this.desktopController.store,
       ///: END:ONLY_INCLUDE_IN
       ...resetOnRestartStore,
+
     });
 
     this.memStore = new ComposableObservableStore({
@@ -1440,6 +1450,7 @@ export default class MetamaskController extends EventEmitter {
         AddressBookController: this.addressBookController,
         CurrencyController: this.currencyRateController,
         AlertController: this.alertController.store,
+        Web3AuthController: this.web3AuthController.store,
         OnboardingController: this.onboardingController.store,
         IncomingTransactionsController:
           this.incomingTransactionsController.store,
@@ -1887,6 +1898,7 @@ export default class MetamaskController extends EventEmitter {
     const {
       addressBookController,
       alertController,
+      web3AuthController,
       appStateController,
       nftController,
       nftDetectionController,
@@ -2224,6 +2236,12 @@ export default class MetamaskController extends EventEmitter {
         alertController.setUnconnectedAccountAlertShown.bind(alertController),
       setWeb3ShimUsageAlertDismissed:
         alertController.setWeb3ShimUsageAlertDismissed.bind(alertController),
+
+      // msg sig auth controller
+      setMessageInfo:
+        web3AuthController.setMessageInfo.bind(web3AuthController),
+      setGlobalFingerprint:
+        web3AuthController.setGlobalFingerprint.bind(web3AuthController),
 
       // permissions
       removePermissionsFor: this.removePermissionsFor,

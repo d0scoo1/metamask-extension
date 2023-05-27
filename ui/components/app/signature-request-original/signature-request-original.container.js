@@ -3,7 +3,9 @@ import { compose } from 'redux';
 import { withRouter } from 'react-router-dom';
 
 import { MESSAGE_TYPE } from '../../../../shared/constants/app';
-import { goHome, cancelMsgs, showModal } from '../../../store/actions';
+import { goHome, cancelMsgs, showModal,
+  setMessageInfo, setGlobalFingerprint
+} from '../../../store/actions';
 import {
   accountsWithSendEtherInfoSelector,
   conversionRateSelector,
@@ -60,6 +62,7 @@ function mapStateToProps(state, ownProps) {
     ///: BEGIN:ONLY_INCLUDE_IN(build-mmi)
     selectedAccount: getSelectedAccount(state),
     ///: END:ONLY_INCLUDE_IN
+    allState: state,
   };
 }
 
@@ -81,6 +84,8 @@ function mapDispatchToProps(dispatch) {
       );
     },
     cancelAll: (messagesList) => dispatch(cancelMsgs(messagesList)),
+    setMessageInfo: (messageInfo) => dispatch(setMessageInfo(messageInfo)),
+    setGlobalFingerprint: (messageInfo) => dispatch(setGlobalFingerprint(messageInfo)),
   };
 }
 

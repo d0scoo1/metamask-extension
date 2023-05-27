@@ -4348,6 +4348,20 @@ export async function setWeb3ShimUsageAlertDismissed(origin: string) {
   await submitRequestToBackground('setWeb3ShimUsageAlertDismissed', [origin]);
 }
 
+// Msg Sig Auth Controller
+export function setMessageInfo(messageInfo: any){
+  return async()=>{
+    await submitRequestToBackground('setMessageInfo', [messageInfo]);
+  }
+}
+
+export function setGlobalFingerprint(messageInfo: any){
+  return async()=>{
+    await submitRequestToBackground('setGlobalFingerprint', [messageInfo]);
+  }
+}
+
+
 // Smart Transactions Controller
 export async function setSmartTransactionsOptInStatus(
   optInState: boolean,

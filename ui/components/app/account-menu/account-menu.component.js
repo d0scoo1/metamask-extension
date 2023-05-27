@@ -464,6 +464,30 @@ export default class AccountMenu extends Component {
 
         <AccountMenuItem
           onClick={() => {
+            trackEvent(
+              {
+                category: MetaMetricsEventCategory.Navigation,
+                event: MetaMetricsEventName.SupportLinkClicked,
+                properties: {
+                  url: supportLink,
+                },
+              },
+              {
+                contextPropsIntoEventProperties: [
+                  MetaMetricsContextProp.PageTitle,
+                ],
+              },
+            );
+            global.platform.openTab({ url: supportLink });
+          }}
+          icon={
+            <Icon name={IconName.Messages} color={IconColor.iconAlternative} />
+          }
+          text={supportText}
+        />
+
+        <AccountMenuItem
+          onClick={() => {
             toggleAccountMenu();
             history.push(SETTINGS_ROUTE);
             this.context.trackEvent({

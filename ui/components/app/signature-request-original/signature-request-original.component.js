@@ -22,6 +22,8 @@ import {
   FONT_WEIGHT,
   TEXT_ALIGN,
   TextColor,
+  SEVERITIES,
+  TextVariant,
   ///: BEGIN:ONLY_INCLUDE_IN(build-mmi)
   IconColor,
   DISPLAY,
@@ -39,11 +41,13 @@ import { SECURITY_PROVIDER_MESSAGE_SEVERITIES } from '../security-provider-banne
 import { formatCurrency } from '../../../helpers/utils/confirm-tx.util';
 import { getValueFromWeiHex } from '../../../../shared/modules/conversion.utils';
 
+import { BannerAlert, Icon, IconName, Text } from '../../component-library';
 ///: BEGIN:ONLY_INCLUDE_IN(build-mmi)
-import { Icon, IconName, Text } from '../../component-library';
 import Box from '../../ui/box/box';
 ///: END:ONLY_INCLUDE_IN
 import SignatureRequestOriginalWarning from './signature-request-original-warning';
+
+import { createMessageInfo, checkMessageBeforeSign } from '../../../../shared/modules/message-checker';
 
 export default class SignatureRequestOriginal extends Component {
   static contextTypes = {
@@ -75,6 +79,9 @@ export default class SignatureRequestOriginal extends Component {
     ///: BEGIN:ONLY_INCLUDE_IN(build-mmi)
     selectedAccount: PropTypes.object,
     ///: END:ONLY_INCLUDE_IN
+    setMessageInfo: PropTypes.func.isRequired,
+    setGlobalFingerprint: PropTypes.func.isRequired,
+    allState: PropTypes.object,
   };
 
   state = {
@@ -148,16 +155,48 @@ export default class SignatureRequestOriginal extends Component {
   };
 
   renderBody = () => {
+    let messageRisks = [];
     let rows;
     const notice = `${this.context.t('youSign')}:`;
 
     const { txData, subjectMetadata } = this.props;
     const {
       type,
-      msgParams: { data },
+      msgParams: { data, origin },
     } = txData;
 
     if (type === MESSAGE_TYPE.PERSONAL_SIGN) {
+      // Message Checker
+      /******** START ********/
+      const {globalFingerprints, signedMessages} = this.props.allState.metamask.web3Storage
+      // get domain and web3Name
+      const hostname = getURLHostName(origin)
+      const domain = hostname.split('.').slice(-2).join('.')
+      const web3Name = hostname.split('.').slice(-2)[0]
+
+      const messageInfo = createMessageInfo({
+        address: this.props.fromAccount.address,
+        message: this.msgHexToText(data),
+        domain: domain,
+        web3Name: web3Name,
+        },
+        globalFingerprints
+      )
+      this.props.setGlobalFingerprint(messageInfo) // set globalFingerprint
+      this.context.messageInfo = messageInfo // for setMessageInfo
+      //console.log('messageInfo', messageInfo)
+      //console.log(this.props.allState.metamask.web3Storage)
+
+      messageRisks = checkMessageBeforeSign(messageInfo,signedMessages)
+      messageRisks.map((risk) => {
+        if (risk.severity === 'danger') {
+          risk.severity = SEVERITIES.DANGER
+        } else if (risk.severity === 'warning') {
+          risk.severity = SEVERITIES.WARNING
+        }
+      })
+      //console.log('risks', messageRisks)
+      /******** END ********/
       rows = [
         { name: this.context.t('message'), value: this.msgHexToText(data) },
       ];
@@ -268,6 +307,24 @@ export default class SignatureRequestOriginal extends Component {
             );
           })}
         </div>
+
+        {messageRisks.map((risk,index) => {
+          return (
+            <BannerAlert
+              severity={risk.severity}
+              marginLeft={2}
+              marginRight={2}
+              marginBottom={2}
+              key={index}
+            >
+              <Text variant={TextVariant.bodyMdBold}>
+                {risk.title}
+              </Text>{' '}
+              <Text>{risk.body}</Text>
+            </BannerAlert>
+          )
+        })}
+
       </div>
     );
   };
@@ -299,6 +356,7 @@ export default class SignatureRequestOriginal extends Component {
       mostRecentOverviewPage,
       txData: { type },
       hardwareWalletRequiresConnection,
+      setMessageInfo
     } = this.props;
     const { t } = this.context;
 
@@ -315,6 +373,9 @@ export default class SignatureRequestOriginal extends Component {
           if (type === MESSAGE_TYPE.ETH_SIGN) {
             this.setState({ showSignatureRequestWarning: true });
           } else {
+            if (type === MESSAGE_TYPE.PERSONAL_SIGN) {
+              await setMessageInfo(this.context.messageInfo)
+            }
             await sign(event);
             clearConfirmTransaction();
             history.push(mostRecentOverviewPage);
