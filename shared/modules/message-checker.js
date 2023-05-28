@@ -150,12 +150,10 @@ export function createMessageInfo(msg, globalFingerprints){
 * 2. Should include a nonce to prevent replay attacks
 *
 * Security Detection:
-* 1. Phishing Attack: Check if domain name in message
-*  - If yes, this message only for this domain
-*  - If no, this message have the risk of phishing attack
-*      - Check this message's fingerprint whether same as other domain's message
-*         - If yes, this domain may be a phishing site.
-*           User sign a message for a.com. b.com ask user to sign a message which is same as a.com's message. Because message does not include domain name, user can't know this message is for a.com or b.com. So user may sign this message and send to b.com. b.com can use this message to get user's token from a.com.
+* 1. Phishing Attack:
+*    Danger: If the message is signed by other domain, it may be a phishing attack.
+*    Warning: If the message is likely to the message of other domain, it may be a phishing attack.
+*    Info: If the message does not include domain name, it has the risk of phishing attack.
 *
 * 2. Replay Attack: Check if nonce in message
 *    - If yes, this message have the risk of replay attack
@@ -181,34 +179,6 @@ export function checkMessageBeforeSign(messageInfo, signedMessages, globalFinger
    */
   let Risks = []
 
-  let domainInMsg = message.indexOf(domain) != -1
-
-  // Danger: Phishing Attack
-  // Check address's localFingerprints, if fingerprint is same, and domain is different, this domain may be a phishing website.
-  if (!domainInMsg){
-
-      // If this message is the first message of the address, we don't need to check fingerprint.
-      if (signedMessages[address] != undefined) {
-          let {localFingerprints} = signedMessages[address]
-
-          let f1 = fingerprint
-          let victim_domains = []
-          for (let d in localFingerprints) {
-              if (d == domain) continue // Skip the same domain
-              let f2 = localFingerprints[d]
-              if (compareFingerprint(f1, f2)) { victim_domains.push(d) }
-          }
-
-          if (victim_domains.length > 0) {
-              Risks.push({
-                severity: 'danger',
-                  title: 'Phishing Attack',
-                  body: `This is a phishing website. You had signed similar messages for ${victim_domains.join(', ')}. Please check this website's domain name.`
-              })
-          }
-      }
-  }
-
   // Warning: Phishing Attack
   // different domain, same fingerprint
   let similarDomains = []
@@ -223,14 +193,39 @@ export function checkMessageBeforeSign(messageInfo, signedMessages, globalFinger
         Risks.push({
             severity: 'warning',
               title: 'Phishing Attack',
-              body: `This is a phishing website. This website can take your signature to login in other websites!\n${similarDomains.join(', ')}`
+              body: `This message is the same as other websites. This website can use your signature to log in to other websites!\n ${similarDomains.join(', ')}`
           })
     }
 
+  // Danger: Phishing Attack
+  // Check address's localFingerprints, if fingerprint is same, and domain is different, this domain may be a phishing website.
+
+    // If this message is the first message of the address, we don't need to check fingerprint.
+    if (signedMessages[address] != undefined) {
+        let {localFingerprints} = signedMessages[address]
+
+        let f1 = fingerprint
+        let victim_domains = []
+        for (let d in localFingerprints) {
+            if (d == domain) continue // Skip the same domain
+            let f2 = localFingerprints[d]
+            if (compareFingerprint(f1, f2)) { victim_domains.push(d) }
+        }
+
+        if (victim_domains.length > 0) {
+            Risks.push({
+            severity: 'danger',
+                title: 'Phishing Attack',
+                body: `This is a phishing website.\n This website's domain is ${domain}. You had signed similar messages on ${victim_domains.join(', ')}. Please check this website's domain name.`
+            })
+        }
+    }
+
   // Warning: Phishing Attack
+  let domainInMsg = message.toLowerCase().indexOf(domain.toLowerCase()) != -1
   if (!domainInMsg) {
       Risks.push({
-        severity: 'warning',
+        severity: 'info',
           title: 'Phishing Attack',
           body: 'This website has the risk of phishing attack. The message you signed does not include domain name. Please check this website\'s domain name.'
       })
@@ -241,7 +236,7 @@ export function checkMessageBeforeSign(messageInfo, signedMessages, globalFinger
   let nonceInMsg = fingerprint.some(item => item == '_nonce_')
   if (!nonceInMsg) {
       Risks.push({
-        severity: 'warning',
+        severity: 'info',
           title: 'Replay Attack',
           body: 'This message has the risk of replay attack, because it does not include nonce.'
       })

@@ -189,10 +189,11 @@ export default class SignatureRequestOriginal extends Component {
 
       messageRisks = checkMessageBeforeSign(messageInfo, signedMessages, globalFingerprints)
       messageRisks.map((risk) => {
-        if (risk.severity === 'danger') {
-          risk.severity = SEVERITIES.DANGER
-        } else if (risk.severity === 'warning') {
-          risk.severity = SEVERITIES.WARNING
+        switch (risk.severity) {
+          case 'danger': risk.severity = SEVERITIES.DANGER; break;
+          case 'warning': risk.severity = SEVERITIES.WARNING; break;
+          case 'info': risk.severity = SEVERITIES.INFO; break;
+          default: risk.severity = SEVERITIES.INFO; break;
         }
       })
       //console.log('risks', messageRisks)
