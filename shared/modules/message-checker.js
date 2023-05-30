@@ -179,6 +179,19 @@ export function checkMessageBeforeSign(messageInfo, signedMessages, globalFinger
    */
   let Risks = []
 
+
+
+    // Info: Phishing Attack
+  let domainInMsg = message.toLowerCase().indexOf(domain.toLowerCase()) != -1
+  if (!domainInMsg) {
+      Risks.push({
+        severity: 'info',
+          title: 'Phishing Attack',
+          body: 'This website has the risk of phishing attack. The message you signed does not include domain name. Please check this website\'s domain name.'
+      })
+  }
+
+
   // Warning: Phishing Attack
   // different domain, same fingerprint
   let similarDomains = []
@@ -190,6 +203,8 @@ export function checkMessageBeforeSign(messageInfo, signedMessages, globalFinger
       }
   }
     if (similarDomains.length > 0) {
+        if (Risks.length > 0){ Risks.pop() }
+
         Risks.push({
             severity: 'warning',
               title: 'Phishing Attack',
@@ -203,7 +218,6 @@ export function checkMessageBeforeSign(messageInfo, signedMessages, globalFinger
     // If this message is the first message of the address, we don't need to check fingerprint.
     if (signedMessages[address] != undefined) {
         let {localFingerprints} = signedMessages[address]
-
         let f1 = fingerprint
         let victim_domains = []
         for (let d in localFingerprints) {
@@ -213,6 +227,7 @@ export function checkMessageBeforeSign(messageInfo, signedMessages, globalFinger
         }
 
         if (victim_domains.length > 0) {
+            if (Risks.length > 0){ Risks.pop() }
             Risks.push({
             severity: 'danger',
                 title: 'Phishing Attack',
@@ -221,19 +236,21 @@ export function checkMessageBeforeSign(messageInfo, signedMessages, globalFinger
         }
     }
 
-  // Warning: Phishing Attack
-  let domainInMsg = message.toLowerCase().indexOf(domain.toLowerCase()) != -1
-  if (!domainInMsg) {
-      Risks.push({
-        severity: 'info',
-          title: 'Phishing Attack',
-          body: 'This website has the risk of phishing attack. The message you signed does not include domain name. Please check this website\'s domain name.'
-      })
-  }
+    // Info: Replay Attack
+    //if no localFingerprints, this is the first sign this message, we refer to globalFingerprints
+    let nonceInMsg = false
 
-  // Warning: Replay Attack
-  // Check whether nonce in message's fingerprint
-  let nonceInMsg = fingerprint.some(item => item == '_nonce_')
+    if (signedMessages[address] != undefined && signedMessages[address].localFingerprints[domain] != undefined) {
+        // Check whether nonce in message's fingerprint
+        nonceInMsg = fingerprint.some(item => item == '_nonce_')
+    }else{
+        if (similarDomains.length >0){
+            let similarFingerprint = globalFingerprints[similarDomains[0]]
+            nonceInMsg = similarFingerprint.some(item => item == '_nonce_')
+        }
+    }
+
+
   if (!nonceInMsg) {
       Risks.push({
         severity: 'info',
