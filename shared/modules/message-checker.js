@@ -101,13 +101,44 @@ function compareFingerprint (f1, f2) {
       if (word1 == '_nonce_' || word2 == '_nonce_') {
           continue
       }
-
       if (word1 != word2) {
           return false
       }
   }
-
   return true
+}
+
+/**
+ *
+ * @param {Array} fp the fingerprint
+ * @param {Array} words the fingerprint of message
+ */
+function matchFingerprint(words, fp){
+    let fp_index = 0
+    let ws_index = 0
+    while(fp_index < fp.length){
+        if (words.length - ws_index < fp.length){
+            return false
+        }
+        for (let i = ws_index; i-ws_index< fp.length; i++){
+            let word1 = fp[fp_index].toString()
+            if (word1 == '_nonce_' || word1 == '_address_'){
+                fp_index++
+                continue
+            }
+            let reg = new RegExp(word1)
+            let word2 = words[i].toString()
+            if (word2.match(reg) == null){
+            //if (fp[fp_index] != words[i]){
+                fp_index = 0
+                ws_index++
+                break
+            }else{
+                fp_index++
+            }
+        }
+    }
+    return true
 }
 
 /**
@@ -146,14 +177,14 @@ export function createMessageInfo(msg, globalFingerprints){
 
 /**
 *Message:
-* 1. Should include a domain name to prevent phishing attacks
+* 1. Should include a domain name to prevent Malicious Message Attacks
 * 2. Should include a nonce to prevent replay attacks
 *
 * Security Detection:
-* 1. Phishing Attack:
-*    Danger: If the message is signed by other domain, it may be a phishing attack.
-*    Warning: If the message is likely to the message of other domain, it may be a phishing attack.
-*    Info: If the message does not include domain name, it has the risk of phishing attack.
+* 1. Malicious Message Attack:
+*    Danger: If the message is signed by other domain, it may be a Malicious Message Attack.
+*    Warning: If the message is likely to the message of other domain, it may be a Malicious Message Attack.
+*    Info: If the message does not include domain name, it has the risk of Malicious Message Attack.
 *
 * 2. Replay Attack: Check if nonce in message
 *    - If yes, this message have the risk of replay attack
@@ -172,92 +203,99 @@ export function checkMessageBeforeSign(messageInfo, signedMessages, globalFinger
 
   /**
    * Danger:
-   *  Phishing Attack: This website may be a phishing site. You had signed similar messages for [domains]. Please check this website's domain name.
+   *  Malicious Message Attack: This website may be a malicious site. You had signed similar messages for [domains]. Please check this website's domain name.
    * Warning:
-   *  Phishing Attack: This website has the risk of phishing attack. The message you signed does not include domain name. Please check this website's domain name.
+   *  Malicious Message Attack: This website has the risk of Malicious Message Attack. The message you signed does not include domain name. Please check this website's domain name.
    *  Replay Attack: This message has the risk of replay attack. Please check this website's domain name.
    */
-  let Risks = []
+    let Risks = []
+    let f1 = fingerprint
 
-
-
-    // Info: Phishing Attack
-  let domainInMsg = message.toLowerCase().indexOf(domain.toLowerCase()) != -1
-  if (!domainInMsg) {
+    // Info: Malicious Message Attack
+    let domainInMsg = message.toLowerCase().indexOf(domain.toLowerCase()) != -1
+    if (!domainInMsg) {
       Risks.push({
         severity: 'info',
-          title: 'Phishing Attack',
-          body: 'This website has the risk of phishing attack. The message you signed does not include domain name. Please check this website\'s domain name.'
+          title: 'Malicious Message Attack',
+          body: 'This website has the risk of Malicious Message Attack. The message you signed does not include domain name. Please check this website before signing!'
       })
-  }
+    }
 
 
-  // Warning: Phishing Attack
+  // Warning: Malicious Message Attack
   // different domain, same fingerprint
-  let similarDomains = []
-  for (let d in globalFingerprints) {
+    let similarDomains = []
+
+    for (let d in globalFingerprints) {
       if (d == domain) continue // Skip the same domain
+
       let f2 = globalFingerprints[d]
-      if (compareFingerprint(fingerprint, f2)) {
+      if (matchFingerprint(f1, f2)) {
+      //if (compareFingerprint(f1, f2)) {
             similarDomains.push(d)
       }
-  }
+    }
     if (similarDomains.length > 0) {
         if (Risks.length > 0){ Risks.pop() }
-
         Risks.push({
             severity: 'warning',
-              title: 'Phishing Attack',
+              title: 'Malicious Message Attack',
               body: `This message is the same as other websites. This website can use your signature to log in to other websites!\n ${similarDomains.join(', ')}`
           })
     }
 
-  // Danger: Phishing Attack
-  // Check address's localFingerprints, if fingerprint is same, and domain is different, this domain may be a phishing website.
+    // Danger: Malicious Message Attack
+    // Check address's localFingerprints, if fingerprint is same, and domain is different, this domain may be a malicious website.
 
     // If this message is the first message of the address, we don't need to check fingerprint.
     if (signedMessages[address] != undefined) {
         let {localFingerprints} = signedMessages[address]
-        let f1 = fingerprint
         let victim_domains = []
         for (let d in localFingerprints) {
             if (d == domain) continue // Skip the same domain
             let f2 = localFingerprints[d]
-            if (compareFingerprint(f1, f2)) { victim_domains.push(d) }
+            if (matchFingerprint(f1, f2)) { victim_domains.push(d) }
+            //if (compareFingerprint(f1, f2)) { victim_domains.push(d) }
         }
 
         if (victim_domains.length > 0) {
             if (Risks.length > 0){ Risks.pop() }
             Risks.push({
             severity: 'danger',
-                title: 'Phishing Attack',
-                body: `This is a phishing website.\n This website's domain is ${domain}. You had signed similar messages on ${victim_domains.join(', ')}. Please check this website's domain name.`
+                title: 'Malicious Message Attack',
+                body: `This is a malicious website.\n This website's domain name is ${domain}. You had signed similar messages on ${victim_domains.join(', ')}. Please check this website before signing!`
             })
         }
     }
 
+
     // Info: Replay Attack
     //if no localFingerprints, this is the first sign this message, we refer to globalFingerprints
-    let nonceInMsg = false
+
+        /*
+    let nonceInMsg = true
 
     if (signedMessages[address] != undefined && signedMessages[address].localFingerprints[domain] != undefined) {
         // Check whether nonce in message's fingerprint
         nonceInMsg = fingerprint.some(item => item == '_nonce_')
-    }else{
+        console.log(fingerprint)
+        console.log('nonceInMsg', nonceInMsg)
+    }
+    else{
         if (similarDomains.length >0){
             let similarFingerprint = globalFingerprints[similarDomains[0]]
             nonceInMsg = similarFingerprint.some(item => item == '_nonce_')
         }
     }
 
-
-  if (!nonceInMsg) {
+   if (!nonceInMsg) {
       Risks.push({
         severity: 'info',
           title: 'Replay Attack',
           body: 'This message has the risk of replay attack, because it does not include nonce.'
       })
   }
+  */
 
   return Risks
 }
