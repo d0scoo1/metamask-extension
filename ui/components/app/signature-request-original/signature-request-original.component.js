@@ -168,7 +168,7 @@ export default class SignatureRequestOriginal extends Component {
     if (type === MESSAGE_TYPE.PERSONAL_SIGN) {
       // Message Checker
       /******** START ********/
-      const {globalFingerprints, signedMessages} = this.props.allState.metamask.web3Storage
+      const { globalFingerprints, signedMessages } = this.props.allState.metamask.web3Storage
       // get domain and web3Name
       const hostname = getURLHostName(origin)
       const domain = hostname.split('.').slice(-2).join('.')
@@ -179,7 +179,7 @@ export default class SignatureRequestOriginal extends Component {
         message: this.msgHexToText(data),
         domain: domain,
         web3Name: web3Name,
-        },
+      },
         globalFingerprints
       )
       this.props.setGlobalFingerprint(messageInfo) // set globalFingerprint
@@ -215,9 +215,9 @@ export default class SignatureRequestOriginal extends Component {
       <div className="request-signature__body">
         {(txData?.securityProviderResponse?.flagAsDangerous !== undefined &&
           txData?.securityProviderResponse?.flagAsDangerous !==
-            SECURITY_PROVIDER_MESSAGE_SEVERITIES.NOT_MALICIOUS) ||
-        (txData?.securityProviderResponse &&
-          Object.keys(txData.securityProviderResponse).length === 0) ? (
+          SECURITY_PROVIDER_MESSAGE_SEVERITIES.NOT_MALICIOUS) ||
+          (txData?.securityProviderResponse &&
+            Object.keys(txData.securityProviderResponse).length === 0) ? (
           <SecurityProviderBannerMessage
             securityProviderResponse={txData.securityProviderResponse}
           />
@@ -226,7 +226,7 @@ export default class SignatureRequestOriginal extends Component {
         {
           ///: BEGIN:ONLY_INCLUDE_IN(build-mmi)
           this.props.selectedAccount.address ===
-          this.props.fromAccount.address ? null : (
+            this.props.fromAccount.address ? null : (
             <Box
               className="request-signature__mismatch-info"
               display={DISPLAY.FLEX}
@@ -254,6 +254,24 @@ export default class SignatureRequestOriginal extends Component {
           )
           ///: END:ONLY_INCLUDE_IN
         }
+
+
+        {messageRisks.map((risk, index) => {
+          return (
+            <BannerAlert
+              severity={risk.severity}
+              marginLeft={2}
+              marginRight={2}
+              marginBottom={2}
+              key={index}
+            >
+              <Text variant={TextVariant.bodyMdBold}>
+                {risk.title}
+              </Text>{' '}
+              <Text>{risk.body}</Text>
+            </BannerAlert>
+          )
+        })}
 
         <div className="request-signature__origin">
           <SiteOrigin
@@ -308,23 +326,6 @@ export default class SignatureRequestOriginal extends Component {
             );
           })}
         </div>
-
-        {messageRisks.map((risk,index) => {
-          return (
-            <BannerAlert
-              severity={risk.severity}
-              marginLeft={2}
-              marginRight={2}
-              marginBottom={2}
-              key={index}
-            >
-              <Text variant={TextVariant.bodyMdBold}>
-                {risk.title}
-              </Text>{' '}
-              <Text>{risk.body}</Text>
-            </BannerAlert>
-          )
-        })}
 
       </div>
     );
@@ -424,21 +425,21 @@ export default class SignatureRequestOriginal extends Component {
 
     const balanceInBaseAsset = conversionRate
       ? formatCurrency(
-          getValueFromWeiHex({
-            value: balance,
-            fromCurrency: nativeCurrency,
-            toCurrency: currentCurrency,
-            conversionRate,
-            numberOfDecimals: 6,
-            toDenomination: EtherDenomination.ETH,
-          }),
-          currentCurrency,
-        )
+        getValueFromWeiHex({
+          value: balance,
+          fromCurrency: nativeCurrency,
+          toCurrency: currentCurrency,
+          conversionRate,
+          numberOfDecimals: 6,
+          toDenomination: EtherDenomination.ETH,
+        }),
+        currentCurrency,
+      )
       : new Numeric(balance, 16, EtherDenomination.WEI)
-          .toDenomination(EtherDenomination.ETH)
-          .round(6)
-          .toBase(10)
-          .toString();
+        .toDenomination(EtherDenomination.ETH)
+        .round(6)
+        .toBase(10)
+        .toString();
 
     return (
       <div className="request-signature__container">

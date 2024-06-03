@@ -141,6 +141,19 @@ function matchFingerprint(words, fp){
     return true
 }
 
+function matchTemplate(message, template){
+    //template = template.join('')
+    template = escapeRegExp(template);
+    template = template.replace(/_nonce_/g, '.*')
+    template = template.replace(/_address_/g, '0x[a-fA-F0-9]{40}')
+    return message.match(new RegExp(template)) != null
+}
+
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // $& 表示匹配到的整个字符串
+}
+
 /**
  *
  * @param {Object} message
@@ -215,9 +228,9 @@ export function checkMessageBeforeSign(messageInfo, signedMessages, globalFinger
     let domainInMsg = message.toLowerCase().indexOf(domain.toLowerCase()) != -1
     if (!domainInMsg) {
       Risks.push({
-        severity: 'info',
-          title: 'Malicious Message Attack',
-          body: 'This website has the risk of Malicious Message Attack. The message you signed does not include domain name. Please check this website before signing!'
+        severity: 'warning',
+          title: 'Lack of Domain Name',
+          body: 'This website has the risk of Blind Message Attack. The message you signed does not include domain name. Please check this website before signing!'
       })
     }
 
@@ -230,7 +243,8 @@ export function checkMessageBeforeSign(messageInfo, signedMessages, globalFinger
       if (d == domain) continue // Skip the same domain
 
       let f2 = globalFingerprints[d]
-      if (matchFingerprint(f1, f2)) {
+      if (matchTemplate(message.toString(), f2.join('') + '')) {
+      //if (matchFingerprint(f1, f2)) {
       //if (compareFingerprint(f1, f2)) {
             similarDomains.push(d)
       }
@@ -239,7 +253,7 @@ export function checkMessageBeforeSign(messageInfo, signedMessages, globalFinger
         if (Risks.length > 0){ Risks.pop() }
         Risks.push({
             severity: 'warning',
-              title: 'Malicious Message Attack',
+              title: 'Blind Message Attack',
               body: `This message is the same as other websites. This website can use your signature to log in to other websites!\n ${similarDomains.join(', ')}`
           })
     }
@@ -254,7 +268,8 @@ export function checkMessageBeforeSign(messageInfo, signedMessages, globalFinger
         for (let d in localFingerprints) {
             if (d == domain) continue // Skip the same domain
             let f2 = localFingerprints[d]
-            if (matchFingerprint(f1, f2)) { victim_domains.push(d) }
+            if (matchTemplate(message.toString(), f2.join('') + '')) { victim_domains.push(d) }
+            //if (matchFingerprint(f1, f2)) { victim_domains.push(d) }
             //if (compareFingerprint(f1, f2)) { victim_domains.push(d) }
         }
 
@@ -262,7 +277,7 @@ export function checkMessageBeforeSign(messageInfo, signedMessages, globalFinger
             if (Risks.length > 0){ Risks.pop() }
             Risks.push({
             severity: 'danger',
-                title: 'Malicious Message Attack',
+                title: 'Blind Message Attack',
                 body: `This is a malicious website.\n This website's domain name is ${domain}. You had signed similar messages on ${victim_domains.join(', ')}. Please check this website before signing!`
             })
         }
